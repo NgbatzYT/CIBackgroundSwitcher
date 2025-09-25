@@ -19,6 +19,8 @@ namespace CI_Background_Switcher
     public class Plugin : BaseUnityPlugin
     {
 
+        public static Texture2D currentTexture;
+
         void Start()
         {
             var harmony = Harmony.CreateAndPatchAll(GetType().Assembly, "ngbatz.cibackgroundswitcher");
@@ -74,6 +76,9 @@ namespace CI_Background_Switcher
         {
             var tex = new Texture2D(2, 2);
             tex.LoadImage(File.ReadAllBytes(_johnViews[obj].Item2));
+
+            Plugin.currentTexture = tex;
+
             ComputerInterface.Plugin.CustomComputer.SetBGImage(new ComputerViewChangeBackgroundEventArgs(tex));
         }
 
@@ -224,6 +229,19 @@ namespace CI_Background_Switcher
         private void ItemSelected(int idx)
         {
             ShowView(_johnViews[_selectionHandler.CurrentSelectionIndex].Item2);
+        }
+    }
+
+    [HarmonyPatch(typeof(CustomComputer), nameof(CustomComputer.SetBGImage))]
+    public static class BGPatch
+    {
+        [HarmonyPrefix]
+        public static void Prefix(ref ComputerViewChangeBackgroundEventArgs args, CustomComputer __instance)
+        {
+            if (Plugin.currentTexture != null)
+            {
+                args = new ComputerViewChangeBackgroundEventArgs(Plugin.currentTexture);
+            }
         }
     }
 }
