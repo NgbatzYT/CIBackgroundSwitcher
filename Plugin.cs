@@ -1,17 +1,17 @@
 ﻿using BepInEx;
-using ComputerInterface;
+using ComputerInterface.Behaviours;
+using ComputerInterface.Enumerations;
 using ComputerInterface.Extensions;
 using ComputerInterface.Interfaces;
-using ComputerInterface.ViewLib;
-using ComputerInterface.Views.GameSettings;
+using ComputerInterface.Models;
+using ComputerInterface.Models.UI;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
+using System.Linq;
 using System.Text;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace CI_Background_Switcher
 {
@@ -49,9 +49,12 @@ namespace CI_Background_Switcher
         public override void OnShow(object[] args)
         {
             base.OnShow(args);
-            _johnViews = new List<Tuple<string, string>>();
+            _johnViews = [];
 
-            foreach(string file in Directory.GetFiles(Path.Combine(Path.GetDirectoryName(GetType().Assembly.Location), "Backgrounds"), "*.png", SearchOption.AllDirectories))
+            string[] exts = [".png", ".jpg", ".jpeg"];
+            var imgs = Directory.GetFiles(Path.Combine(Path.GetDirectoryName(GetType().Assembly.Location), "Backgrounds"), "*", SearchOption.AllDirectories).Where(file => exts.Contains(Path.GetExtension(file).ToLowerInvariant()));
+
+            foreach (var file in imgs)
             {
                 _johnViews.Add(new(Path.GetFileNameWithoutExtension(file), file));
             }
@@ -79,7 +82,10 @@ namespace CI_Background_Switcher
 
             Plugin.currentTexture = tex;
 
-            ComputerInterface.Plugin.CustomComputer.SetBGImage(new ComputerViewChangeBackgroundEventArgs(tex));
+            foreach (CustomComputer cc in GameObject.FindObjectsByType<CustomComputer>(FindObjectsSortMode.None))
+            {
+                cc.SetBGImage(new ComputerViewChangeBackgroundEventArgs(tex));
+            }
         }
 
         private void Redraw()
@@ -90,7 +96,7 @@ namespace CI_Background_Switcher
 
             int lineIdx = _pageHandler.MovePageToIdx(_selectionHandler.CurrentSelectionIndex);
 
-            _pageHandler.EnumarateElements((entry, idx) =>
+            _pageHandler.EnumerateElements((entry, idx) =>
             {
                 str.Append(_selectionHandler.GetIndicatedText(idx, lineIdx, entry.Item1));
                 str.AppendLine();
@@ -195,7 +201,7 @@ namespace CI_Background_Switcher
 
             int lineIdx = _pageHandler.MovePageToIdx(_selectionHandler.CurrentSelectionIndex);
 
-            _pageHandler.EnumarateElements((entry, idx) =>
+            _pageHandler.EnumerateElements((entry, idx) =>
             {
                 str.Append(_selectionHandler.GetIndicatedText(idx, lineIdx, entry.Item1));
                 str.AppendLine();
